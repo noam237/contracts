@@ -7,10 +7,4 @@
  * the `exports` map in package.json.
  */
 
-export * from "./enums.js";
-export * from "./formats.js";
-export * from "./errors.js";
-export * from "./auth.js";
-export * from "./webhook-signing.js";
 export * as Webhooks from "./webhooks/index.js";
-export * as Rest from "./rest/index.js";
