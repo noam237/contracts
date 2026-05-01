@@ -8,3 +8,4 @@
  */
 
 export * as Webhooks from "./webhooks/index.js";
+export * as Rest from "./rest/index.js";
