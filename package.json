@@ -48,8 +48,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint . --ext .ts"
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "zod": "^4.0.0"
@@ -66,7 +65,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sabonmichal/contracts.git"
+    "url": "https://github.com/noam237/contracts.git"
   },
   "license": "UNLICENSED",
   "private": false,
