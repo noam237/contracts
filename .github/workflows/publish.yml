@@ -28,7 +28,7 @@ jobs:
           node-version: "20"
           cache: "npm"
           registry-url: "https://npm.pkg.github.com"
-          scope: "@sabonmichal"
+          scope: "@noam237"
 
       - name: Verify tag matches package.json version
         run: |
