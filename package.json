@@ -1,6 +1,6 @@
 {
   "name": "@noam237/contracts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cross-service contract source-of-truth for the Sabon Michal ecosystem (ERP, CRM, store). Webhook event schemas, REST endpoint contracts, shared enums, and inter-service auth/signing utilities.",
   "type": "module",
   "main": "./dist/index.js",
@@ -48,7 +48,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "tsc"
   },
   "peerDependencies": {
     "zod": "^4.0.0"
