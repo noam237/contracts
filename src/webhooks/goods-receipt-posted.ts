@@ -13,7 +13,7 @@
  *   a flat body { event, itemId, sku?, availableQty?, incomingQty?, ... }
  *   rather than the canonical { event, timestamp, idempotencyKey, payload }
  *   envelope. This package defines the canonical envelope; both consumers
- *   must align to it as part of the migration to @sabonmichal/contracts.
+ *   must align to it as part of the migration to @noam237/contracts.
  *
  *   The payload below matches what ERP CURRENTLY emits. Quantity fields
  *   that the CRM consumes (availableQty, incomingQty) are listed as

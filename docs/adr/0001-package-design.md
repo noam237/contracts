@@ -1,4 +1,4 @@
-# ADR 0001 — Package design for `@sabonmichal/contracts`
+# ADR 0001 — Package design for `@noam237/contracts`
 
 **Status:** Accepted
 **Date:** 2026-05
@@ -42,7 +42,7 @@ The package is published to `https://npm.pkg.github.com` under the
 - Auth via `${{ secrets.GITHUB_TOKEN }}` in CI keeps the secret-management
   story trivial — no Cloudsmith / Verdaccio to operate.
 - If we ever need to expose a subset publicly (e.g. for partner
-  integrations), we'll publish a thin `@sabonmichal/contracts-public`
+  integrations), we'll publish a thin `@noam237/contracts-public`
   package separately.
 
 ### 4. Versioning: 0.x while iterating, strict semver from 1.0

@@ -1,9 +1,9 @@
 /**
- * @sabonmichal/contracts — cross-service contract source-of-truth
+ * @noam237/contracts — cross-service contract source-of-truth
  * for the Sabon Michal ecosystem (ERP, CRM, store).
  *
  * Re-exports every public surface for convenience. Sub-path imports
- * (e.g. `@sabonmichal/contracts/webhooks`) are also supported via
+ * (e.g. `@noam237/contracts/webhooks`) are also supported via
  * the `exports` map in package.json.
  */
 

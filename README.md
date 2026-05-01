@@ -1,4 +1,4 @@
-# @sabonmichal/contracts
+# @noam237/contracts
 
 Cross-service contract source-of-truth for the **Sabon Michal** ecosystem
 (ERP, CRM, future store).
@@ -32,15 +32,15 @@ for the design rationale.
 
 | Module                                       | Contents                                                                |
 |----------------------------------------------|-------------------------------------------------------------------------|
-| `@sabonmichal/contracts/webhooks`            | Zod schemas + types for every inter-service webhook event                |
-| `@sabonmichal/contracts/rest`                | Zod request/response schemas for inter-service REST endpoints            |
-| `@sabonmichal/contracts/enums`               | `Currency`, `ItemType`, `BOMComponentType`, `TransactionType`, `WOStatus`, `CategoryType`, `PurchasingMethod`, `GoodsReceiptStatus` |
-| `@sabonmichal/contracts/formats`             | SKU regex, document-number regex, validators                             |
-| `@sabonmichal/contracts/errors`              | `ErrorResponseSchema` + common `ErrorCode` constants                     |
-| `@sabonmichal/contracts/auth`                | `makeServiceAuthHeader` / `verifyServiceAuthHeader` (timing-safe)        |
-| `@sabonmichal/contracts/webhook-signing`     | HMAC-SHA256 sign/verify + `IdempotencyKeyCache` interface                |
+| `@noam237/contracts/webhooks`            | Zod schemas + types for every inter-service webhook event                |
+| `@noam237/contracts/rest`                | Zod request/response schemas for inter-service REST endpoints            |
+| `@noam237/contracts/enums`               | `Currency`, `ItemType`, `BOMComponentType`, `TransactionType`, `WOStatus`, `CategoryType`, `PurchasingMethod`, `GoodsReceiptStatus` |
+| `@noam237/contracts/formats`             | SKU regex, document-number regex, validators                             |
+| `@noam237/contracts/errors`              | `ErrorResponseSchema` + common `ErrorCode` constants                     |
+| `@noam237/contracts/auth`                | `makeServiceAuthHeader` / `verifyServiceAuthHeader` (timing-safe)        |
+| `@noam237/contracts/webhook-signing`     | HMAC-SHA256 sign/verify + `IdempotencyKeyCache` interface                |
 
-You can also import everything from the root: `import { ... } from "@sabonmichal/contracts"`.
+You can also import everything from the root: `import { ... } from "@noam237/contracts"`.
 
 What this package is **not**: business logic, Prisma models, UI
 components, auth sessions. Only the wire-format truths that two or
@@ -63,7 +63,7 @@ This package is published to **GitHub Packages** as a private package.
 3. Install:
 
    ```bash
-   npm install @sabonmichal/contracts
+   npm install @noam237/contracts
    ```
 
 4. Use:
@@ -73,12 +73,12 @@ This package is published to **GitHub Packages** as a private package.
      CurrencySchema,
      SkuSchema,
      makeServiceAuthHeader,
-   } from "@sabonmichal/contracts";
+   } from "@noam237/contracts";
 
    import {
      WebhookEnvelopeSchema,
      GoodsReceiptPostedEventSchema,
-   } from "@sabonmichal/contracts/webhooks";
+   } from "@noam237/contracts/webhooks";
    ```
 
 ## Versioning policy
