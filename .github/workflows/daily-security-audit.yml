@@ -64,6 +64,10 @@ jobs:
     if: always()
     steps:
       - uses: actions/github-script@v7
+        env:
+          INPUT_HIGH: ${{ needs.dependency-audit.outputs.vulns_high }}
+          INPUT_CRITICAL: ${{ needs.dependency-audit.outputs.vulns_critical }}
+          INPUT_DEP_SUMMARY: ${{ needs.dependency-audit.outputs.vulns_summary }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -71,9 +75,9 @@ jobs:
             const title = `Daily security audit — ${today}`;
             const label = "security-audit";
 
-            const high = "${{ needs.dependency-audit.outputs.vulns_high }}";
-            const critical = "${{ needs.dependency-audit.outputs.vulns_critical }}";
-            const depSummary = `${{ needs.dependency-audit.outputs.vulns_summary }}`;
+            const high = process.env.INPUT_HIGH || "0";
+            const critical = process.env.INPUT_CRITICAL || "0";
+            const depSummary = process.env.INPUT_DEP_SUMMARY || "";
 
             const totalFindings = parseInt(high) + parseInt(critical);
             const status = totalFindings === 0 ? "✅ All clear" : `⚠️ ${totalFindings} finding(s)`;
