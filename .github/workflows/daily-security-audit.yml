@@ -1,0 +1,144 @@
+name: Daily Security Audit
+
+# Spec: ~/CascadeProjects/.claude/skills/sabon-security/SKILL.md § "Daily audit checklist"
+# Runbook: runbooks/daily-security-audit.md
+#
+# Contracts is a library, not an app — no API routes, no user sessions.
+# This workflow runs only the dependency-CVE audit (npm audit). The
+# dangerous-pattern checks ($queryRawUnsafe, dangerouslySetInnerHTML) don't
+# apply here. CRM/ERP/store have the full version.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Dependency CVE audit (npm audit)
+    runs-on: ubuntu-latest
+    outputs:
+      vulns_high: ${{ steps.audit.outputs.high }}
+      vulns_critical: ${{ steps.audit.outputs.critical }}
+      vulns_summary: ${{ steps.audit.outputs.summary }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies (with retry on transient flake)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: npm ci
+      - id: audit
+        name: npm audit
+        run: |
+          set +e
+          AUDIT_JSON=$(npm audit --audit-level=high --json 2>/dev/null || true)
+          HIGH=$(echo "$AUDIT_JSON" | jq -r '.metadata.vulnerabilities.high // 0')
+          CRITICAL=$(echo "$AUDIT_JSON" | jq -r '.metadata.vulnerabilities.critical // 0')
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "$AUDIT_JSON" | jq -r '.vulnerabilities | to_entries | map("\(.key): \(.value.severity) (\(.value.via | map(.title // .) | join(", ")))") | .[]' > /tmp/vulns.txt 2>/dev/null || true
+          if [ -s /tmp/vulns.txt ]; then
+            SUMMARY=$(head -20 /tmp/vulns.txt | jq -Rsa . | sed 's/^"//;s/"$//')
+          else
+            SUMMARY="No high/critical CVEs"
+          fi
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  findings-issue:
+    name: Post findings to rolling issue
+    runs-on: ubuntu-latest
+    needs: [dependency-audit]
+    if: always()
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const today = new Date().toISOString().split("T")[0];
+            const title = `Daily security audit — ${today}`;
+            const label = "security-audit";
+
+            const high = "${{ needs.dependency-audit.outputs.vulns_high }}";
+            const critical = "${{ needs.dependency-audit.outputs.vulns_critical }}";
+            const depSummary = `${{ needs.dependency-audit.outputs.vulns_summary }}`;
+
+            const totalFindings = parseInt(high) + parseInt(critical);
+            const status = totalFindings === 0 ? "✅ All clear" : `⚠️ ${totalFindings} finding(s)`;
+
+            const body = [
+              `## Run ${new Date().toISOString()}`,
+              ``,
+              `**Status:** ${status}`,
+              ``,
+              `### Dependency CVEs`,
+              `- High: ${high}`,
+              `- Critical: ${critical}`,
+              ``,
+              `\`\`\``,
+              depSummary,
+              `\`\`\``,
+              ``,
+              `Workflow: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            ].join("\n");
+
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: label,
+              state: "open",
+              per_page: 100,
+            });
+
+            let issue = issues.data.find((i) => i.title === title);
+
+            if (!issue) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label,
+                  color: "d93f0b",
+                  description: "Daily automated security audit findings",
+                });
+              } catch (e) {}
+
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: `Rolling issue for the ${today} security audit run. Findings appended as comments.\n\nClosed when all findings are resolved.`,
+                labels: [label],
+              });
+              issue = created.data;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body,
+            });
+
+            if (parseInt(critical) > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ["security-critical"],
+                });
+              } catch (e) {}
+            }
