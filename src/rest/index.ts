@@ -6,3 +6,4 @@
  */
 
 export * from "./stock.js";
+export * from "./historic-purchases.js";

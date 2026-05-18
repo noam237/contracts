@@ -5,6 +5,22 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com),
 and this project adheres to [Semantic Versioning](https://semver.org)
 (strict from `1.0.0`; minor versions in `0.x` may include breaking changes).
 
+## 0.2.0 — Historic purchase replay
+
+### Added
+- `@noam237/contracts/rest`
+  - `HistoricPurchaseLine`, `HistoricPurchaseEvent` schemas — a post-kit-explosion
+    product purchase line and one historic order.
+  - `HistoricPurchaseIngestRequest` / `HistoricPurchaseIngestResponse` — the
+    `POST /api/historic-purchases/ingest` contract (chronological batch append).
+  - `HistoricPurchaseResetRequest` / `HistoricPurchaseResetResponse` — the
+    `POST /api/historic-purchases/reset` contract (wipe a prior replay run).
+  - `ReplayRunId` schema — stable identifier for one replay run.
+
+These power the one-shot CRM → ERP backfill of every completed historic order
+(back to 2016) into the ERP's dedicated `HistoricPurchase` table. The rows are a
+demand dataset and never touch the inventory ledger.
+
 ## 0.1.0 — Initial scaffold
 
 Initial release. Establishes the contract surface for the Sabon Michal
