@@ -1,137 +1,86 @@
 /**
- * Stock REST contracts — request/response schemas for the inter-service
- * stock query and reservation endpoints exposed by the ERP and consumed
- * by the CRM (and the future store).
+ * Stock REST contracts — the inter-service stock endpoints the ERP exposes and
+ * the CRM consumes.
  *
- * TODO: align with ERP /api/items/{id}/stock — these endpoints do not
- * yet exist on the ERP side. The schemas below are the contract we
- * want them to fulfill. Implementation order:
- *   1. ERP exposes GET  /api/items/{itemId}/stock         (getStock)
- *   2. ERP exposes POST /api/items/{itemId}/stock/reserve (reserveStock)
- *   3. ERP exposes POST /api/items/{itemId}/stock/release (releaseStock)
- *   4. ERP exposes POST /api/items/{itemId}/stock/deduct  (deductStock)
- *   5. CRM swaps direct DB lookups for these calls.
+ * These describe the endpoints **as implemented** (verified against the ERP
+ * `web/src/app/api/stock/*` handlers and the CRM `src/lib/erp-bridge.ts`), not
+ * an aspirational design. Earlier revisions of this file documented a richer,
+ * never-built shape (per-item URLs, `reference`/`reservationId`, response
+ * envelopes); that drift has been corrected here.
  *
  * All endpoints require `Authorization: Bearer <SERVICE_API_KEY>`.
+ *
+ * Lifecycle: **reserve** holds stock (writes a negative ISSUE transaction in the
+ * MAIN warehouse immediately and returns its id) → **deduct** confirms at pack
+ * time (annotation only — the balance already dropped at reserve) → **release**
+ * reverses a hold on cancellation (writes a positive RETURN). Quantities are in
+ * the item's base unit (finished goods = units).
  */
 
 import { z } from "zod";
 
-// ── Common ──
-
-/**
- * A reservation handle. Returned by reserveStock, accepted by
- * releaseStock and deductStock so the ERP can roll back or commit
- * the right rows.
- */
+/** An ERP `InventoryTransaction.id` — returned by reserve, passed to deduct/release. */
 export const ReservationIdSchema = z.string().min(1);
 export type ReservationId = z.infer<typeof ReservationIdSchema>;
 
-// ── GET /api/items/{itemId}/stock ──
-
-export const GetStockRequestSchema = z.object({
-  itemId: z.string().min(1),
-});
-export type GetStockRequest = z.infer<typeof GetStockRequestSchema>;
-
-export const GetStockResponseSchema = z.object({
-  data: z.object({
-    itemId: z.string(),
-    sku: z.string(),
-    /** Sum of all InventoryTransaction rows for the item, in base unit. */
-    onHandQty: z.number(),
-    /** onHandQty minus the sum of currently-active reservations. */
-    availableQty: z.number(),
-    /** Sum of expected incoming receipts (open POs + in-transit). */
-    incomingQty: z.number(),
-    /** ISO timestamp of the snapshot. */
-    asOf: z.string().datetime({ offset: true }),
-  }),
-});
-export type GetStockResponse = z.infer<typeof GetStockResponseSchema>;
-
-// ── POST /api/items/{itemId}/stock/reserve ──
+// ── POST /api/stock/reserve ──
+// Holds stock and returns the ISSUE transaction id. Returns success:false (with
+// HTTP 200) when stock is insufficient — callers must check the body, not the
+// status. Concurrent reserves for one item are serialized server-side.
 
 export const ReserveStockRequestSchema = z.object({
   itemId: z.string().min(1),
   /** Quantity to hold, in the item's base unit. Must be > 0. */
   quantity: z.number().positive(),
+  /** CRM order id — stored as the transaction's documentId for audit. */
+  orderId: z.string().min(1),
   /**
-   * Caller-supplied reference, e.g. a CRM order id. Used so that
-   * subsequent release/deduct calls can also locate the row by ref
-   * without persisting the reservationId on the caller's side.
+   * Optional stable per-line idempotency key. A repeat with the same key
+   * returns the original reservation instead of reducing stock again, so a
+   * retried call after a lost response is safe.
    */
-  reference: z.string().min(1),
-  /**
-   * Optional reservation TTL. Reservations older than this are
-   * eligible for automatic release. Defaults to 24h on the ERP side.
-   */
-  ttlSeconds: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(1).max(200).optional(),
 });
 export type ReserveStockRequest = z.infer<typeof ReserveStockRequestSchema>;
 
 export const ReserveStockResponseSchema = z.object({
-  data: z.object({
-    reservationId: ReservationIdSchema,
-    itemId: z.string(),
-    quantity: z.number().positive(),
-    reservedAt: z.string().datetime({ offset: true }),
-    expiresAt: z.string().datetime({ offset: true }),
-  }),
+  success: z.boolean(),
+  /** The ISSUE transaction id; empty string when success is false. */
+  transactionId: z.string(),
+  /** Available quantity remaining after the reservation. */
+  availableAfter: z.number(),
 });
 export type ReserveStockResponse = z.infer<typeof ReserveStockResponseSchema>;
 
-// ── POST /api/items/{itemId}/stock/release ──
-
-export const ReleaseStockRequestSchema = z.object({
-  itemId: z.string().min(1),
-  /**
-   * Either the reservationId returned by reserveStock, or the
-   * caller-supplied reference, or both. At least one is required.
-   */
-  reservationId: ReservationIdSchema.optional(),
-  reference: z.string().min(1).optional(),
-}).refine(
-  (v) => v.reservationId || v.reference,
-  { message: "reservationId or reference is required" },
-);
-export type ReleaseStockRequest = z.infer<typeof ReleaseStockRequestSchema>;
-
-export const ReleaseStockResponseSchema = z.object({
-  data: z.object({
-    released: z.boolean(),
-    /** Quantity that was released (0 if nothing matched). */
-    quantity: z.number().nonnegative(),
-  }),
-});
-export type ReleaseStockResponse = z.infer<typeof ReleaseStockResponseSchema>;
-
-// ── POST /api/items/{itemId}/stock/deduct ──
-// Commits a previously-reserved hold by writing an ISSUE
-// InventoryTransaction. This is the "convert reservation → real
-// stock movement" step.
+// ── POST /api/stock/deduct ──
+// Marks a reservation confirmed at pack time. NOTE: stock already dropped at
+// reserve, so this does NOT change the balance — it only annotates the row.
 
 export const DeductStockRequestSchema = z.object({
-  itemId: z.string().min(1),
-  reservationId: ReservationIdSchema,
-  /**
-   * The actual deducted quantity. May be <= the original reservation
-   * (e.g. partial fulfillment); ERP returns the remaining hold if any.
-   */
-  quantity: z.number().positive(),
-  /** Document number of the originating CRM order/shipment, for audit. */
-  documentNumber: z.string().min(1),
-  notes: z.string().optional(),
+  transactionId: ReservationIdSchema,
+  orderId: z.string().min(1),
 });
 export type DeductStockRequest = z.infer<typeof DeductStockRequestSchema>;
 
-export const DeductStockResponseSchema = z.object({
-  data: z.object({
-    /** ERP InventoryTransaction.id created by the deduction. */
-    transactionId: z.string(),
-    deductedQty: z.number().positive(),
-    /** Remaining quantity left on the reservation, 0 if fully consumed. */
-    remainingReservedQty: z.number().nonnegative(),
-  }),
-});
+export const DeductStockResponseSchema = z.object({ success: z.boolean() });
 export type DeductStockResponse = z.infer<typeof DeductStockResponseSchema>;
+
+// ── POST /api/stock/release ──
+// Reverses a reservation (writes a positive RETURN) on order cancellation.
+
+export const ReleaseStockRequestSchema = z.object({
+  transactionId: ReservationIdSchema,
+  orderId: z.string().min(1),
+});
+export type ReleaseStockRequest = z.infer<typeof ReleaseStockRequestSchema>;
+
+export const ReleaseStockResponseSchema = z.object({ success: z.boolean() });
+export type ReleaseStockResponse = z.infer<typeof ReleaseStockResponseSchema>;
+
+// ── Read path ──
+// There is no per-item GET stock endpoint. To refresh its local stock view the
+// CRM polls `GET /api/inventory/finished-goods` (Bearer SERVICE_API_KEY,
+// INVENTORY_VIEW), which returns a velocity list: one row per active finished
+// good with `currentStock` (sum of InventoryTransaction quantity, in units),
+// `avgDailyConsumption`, `safetyStock`, and `daysUntilDepletion`, plus a summary.
+// It is a reporting endpoint, not a contract surface — kept here only as a pointer.

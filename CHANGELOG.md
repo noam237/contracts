@@ -5,6 +5,26 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com),
 and this project adheres to [Semantic Versioning](https://semver.org)
 (strict from `1.0.0`; minor versions in `0.x` may include breaking changes).
 
+## 0.3.0 — Stock contract corrected to match implementation
+
+### Changed
+- `@noam237/contracts/rest` `stock` — rewritten to describe the stock endpoints
+  **as actually implemented** by the ERP and CRM, replacing an aspirational,
+  never-built design that had drifted from reality (it documented per-item URLs,
+  `reference`/`reservationId`, TTLs, and response envelopes that do not exist).
+  - `ReserveStockRequest` is now `{ itemId, quantity, orderId, idempotencyKey? }`
+    — the new optional `idempotencyKey` makes a retried reserve a no-op instead
+    of a double reduction; `ReserveStockResponse` is the flat
+    `{ success, transactionId, availableAfter }`.
+  - `DeductStockRequest` / `ReleaseStockRequest` are `{ transactionId, orderId }`
+    → `{ success }`.
+  - Removed the per-item `GetStock*` schemas; documented the real read path
+    (`GET /api/inventory/finished-goods`) as a pointer instead.
+
+The stock types were unused by both apps (each kept local copies), so this is a
+documentation-accuracy fix with **no runtime impact** — but it stops a future
+consumer (e.g. the store service) from building to the wrong shape.
+
 ## 0.2.0 — Historic purchase replay
 
 ### Added
