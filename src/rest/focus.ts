@@ -13,6 +13,9 @@
  * body and not in a URL, where request logs would keep them. It reads; it
  * changes nothing.
  *
+ * The CRM wraps each answer in its usual envelope, `{ ok: true, data }`;
+ * the response schemas below describe `data`.
+ *
  * Days are Israel calendar days (Asia/Jerusalem), inclusive at both ends.
  * Every value is for ONE day — never a running total — so re-pulling a day
  * simply replaces it.
