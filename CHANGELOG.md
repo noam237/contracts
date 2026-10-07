@@ -5,6 +5,31 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com),
 and this project adheres to [Semantic Versioning](https://semver.org)
 (strict from `1.0.0`; minor versions in `0.x` may include breaking changes).
 
+## 0.4.0 — Focus read-only metrics
+
+Version 0.3.0 is the stock-contract correction in PR #68; the two touch
+different files and can merge in either order.
+
+### Added
+- `@noam237/contracts/rest` `focus` — what Focus (the goals and weekly-promise
+  app) pulls from the CRM. Focus only pulls; nothing calls Focus.
+  - `FocusDaySchema` (an Israel calendar day, `YYYY-MM-DD`), `focusRangeDays`
+    and the range caps (62 days for metrics, 7 days and 25 people for activity).
+  - `GET /api/focus/v1/company-metrics`: `FocusCompanyMetricsQuerySchema`,
+    `FocusCrmMetricKeySchema` (`crm.orders_paid`, `crm.accounts_new`,
+    `crm.cases_opened`, `crm.cases_closed`) and
+    `FocusCompanyMetricsResponseSchema` — one value per key per day, zeros
+    included.
+  - `POST /api/focus/v1/user-activity`: `FocusUserActivityRequestSchema` (the
+    people who opted in, by email, in the body so no email lands in a URL),
+    `FocusActivityKeySchema` and `FocusUserActivityResponseSchema` — counts of
+    completed work per person per day.
+
+Only counts of completed work cross this boundary: no scores, sentiment,
+ratings, durations or per-person money. Company money figures are left out
+until the owner decides how Focus may show them. ERP metrics follow in a later
+minor version.
+
 ## 0.2.0 — Historic purchase replay
 
 ### Added
