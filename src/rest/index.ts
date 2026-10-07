@@ -7,3 +7,4 @@
 
 export * from "./stock.js";
 export * from "./historic-purchases.js";
+export * from "./focus.js";
