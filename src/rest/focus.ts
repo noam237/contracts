@@ -1,5 +1,6 @@
 /**
- * Focus REST contracts — the read-only numbers Focus pulls from the CRM.
+ * Focus REST contracts — the read-only numbers Focus pulls from the CRM and
+ * the ERP.
  *
  * Focus is the fourth system (quarterly goals and weekly promises). It PULLS
  * on a schedule; nothing in the CRM or ERP ever calls Focus, and Focus never
@@ -13,8 +14,13 @@
  * body and not in a URL, where request logs would keep them. It reads; it
  * changes nothing.
  *
- * The CRM wraps each answer in its usual envelope, `{ ok: true, data }`;
- * the response schemas below describe `data`.
+ * Endpoint (ERP side, `Authorization: Bearer <FOCUS_API_KEY>` — a key of
+ * its own, never SERVICE_API_KEY):
+ *   GET  /api/focus/v1/company-metrics?from=YYYY-MM-DD&to=YYYY-MM-DD
+ *
+ * Each system wraps its answer in its usual envelope — the CRM as
+ * `{ ok: true, data }`, the ERP as `{ data }`; the response schemas below
+ * describe `data`.
  *
  * Days are Israel calendar days (Asia/Jerusalem), inclusive at both ends.
  * Every value is for ONE day — never a running total — so re-pulling a day
@@ -24,8 +30,6 @@
  * sentiment, ratings, durations, or money per person. Company money figures
  * are left out for now: the CRM shows them only to people with financial
  * permission, and Focus shows goals to everyone.
- *
- * ERP company metrics will be added in a later minor version.
  */
 
 import { z } from "zod";
@@ -95,6 +99,26 @@ export const FocusCrmMetricKeySchema = z.enum([
   "crm.cases_closed",
 ]);
 export type FocusCrmMetricKey = z.infer<typeof FocusCrmMetricKeySchema>;
+
+/**
+ * Company metrics the ERP reports, each a whole-company total for one day.
+ *
+ * - `erp.batches_released`  production batches whose first QA release was
+ *                           that day (each batch counted once)
+ * - `erp.units_released`    finished-goods units QA put into sellable stock
+ *                           that day: units on release forms released that day,
+ *                           plus units from a release form's QA hold returned
+ *                           to stock that day. Every size counts as one unit
+ * - `erp.deviations_opened` deviations logged that day, not cancelled
+ * - `erp.deviations_closed` deviations closed (not cancelled) that day
+ */
+export const FocusErpMetricKeySchema = z.enum([
+  "erp.batches_released",
+  "erp.units_released",
+  "erp.deviations_opened",
+  "erp.deviations_closed",
+]);
+export type FocusErpMetricKey = z.infer<typeof FocusErpMetricKeySchema>;
 
 /**
  * One metric on one day. `key` is a plain string on the wire so a producer
