@@ -26,13 +26,13 @@ jobs:
       vulns_critical: ${{ steps.audit.outputs.critical }}
       vulns_summary: ${{ steps.audit.outputs.summary }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
       - name: Install dependencies (with retry on transient flake)
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -63,7 +63,7 @@ jobs:
     needs: [dependency-audit]
     if: always()
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         env:
           INPUT_HIGH: ${{ needs.dependency-audit.outputs.vulns_high }}
           INPUT_CRITICAL: ${{ needs.dependency-audit.outputs.vulns_critical }}
