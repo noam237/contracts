@@ -1,0 +1,41 @@
+# Weekly dependency updates for the shared contracts package.
+#
+# Why: the daily security audit reports advisories to a rolling issue but
+# nothing opens the fix PR, so they sit un-actioned (security program, Phase 0,
+# 2026-10-13). Dependabot raises the PR; the owner still reviews and merges,
+# and a merge here is a package publish that ERP, CRM and store consume — read
+# the release notes of a major before merging it.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "06:00"
+      timezone: Asia/Jerusalem
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security-audit
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "06:00"
+      timezone: Asia/Jerusalem
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
