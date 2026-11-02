@@ -14,6 +14,10 @@ updates:
       day: sunday
       time: "06:00"
       timezone: Asia/Jerusalem
+    # Propose a version only once it is 7 days old: brand-new releases are the
+    # riskiest. Security updates ignore this and still arrive at once.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     labels:
       - dependencies
@@ -33,6 +37,8 @@ updates:
       day: sunday
       time: "06:00"
       timezone: Asia/Jerusalem
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "ci"
     groups:
