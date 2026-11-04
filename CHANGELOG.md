@@ -5,6 +5,18 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com),
 and this project adheres to [Semantic Versioning](https://semver.org)
 (strict from `1.0.0`; minor versions in `0.x` may include breaking changes).
 
+## 0.5.0 — Focus: ERP company metrics
+
+### Added
+- `@noam237/contracts/rest` `focus` — `FocusErpMetricKeySchema`: the ERP's
+  answer to `GET /api/focus/v1/company-metrics` (same query and response
+  schemas as the CRM's, `source: "ERP"`), so a Focus goal's result can fill
+  itself from production numbers:
+  `erp.batches_released`, `erp.units_released`, `erp.deviations_opened`,
+  `erp.deviations_closed`. Whole-company daily totals only; no person, no money.
+  The ERP checks a key of its own, `FOCUS_API_KEY`, never `SERVICE_API_KEY`,
+  and wraps its answer as `{ data }`.
+
 ## 0.4.0 — Focus read-only metrics
 
 Version 0.3.0 is the stock-contract correction in PR #68; the two touch

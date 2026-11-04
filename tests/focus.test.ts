@@ -5,6 +5,7 @@ import {
   FocusCompanyMetricsQuerySchema,
   FocusCompanyMetricsResponseSchema,
   FocusCrmMetricKeySchema,
+  FocusErpMetricKeySchema,
   FocusUserActivityRequestSchema,
   FocusUserActivityResponseSchema,
   FocusActivityKeySchema,
@@ -60,6 +61,28 @@ describe("Focus contracts — company metrics", () => {
     };
     const parsed = FocusCompanyMetricsResponseSchema.parse(payload);
     expect(parsed.values).toHaveLength(8);
+  });
+
+  it("round-trips a representative ERP answer", () => {
+    const payload = {
+      source: "ERP",
+      from: "2026-10-07",
+      to: "2026-10-07",
+      generatedAt: "2026-10-07T12:30:00.000Z",
+      values: FocusErpMetricKeySchema.options.map((key) => ({
+        day: "2026-10-07",
+        key,
+        value: key === "erp.units_released" ? 4800 : 2,
+      })),
+    };
+    const parsed = FocusCompanyMetricsResponseSchema.parse(payload);
+    expect(parsed.source).toBe("ERP");
+    expect(parsed.values).toHaveLength(4);
+  });
+
+  it("keeps each system's keys under its own prefix", () => {
+    for (const key of FocusCrmMetricKeySchema.options) expect(key.startsWith("crm.")).toBe(true);
+    for (const key of FocusErpMetricKeySchema.options) expect(key.startsWith("erp.")).toBe(true);
   });
 
   it("lets an older consumer read a key it does not know yet", () => {
